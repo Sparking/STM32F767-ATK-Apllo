@@ -12,6 +12,6 @@ extern void delay_xms(unsigned int ms);
 
 extern unsigned int get_systick_count(void);
 
-
+extern void system_init(const unsigned int baudrate);
 
 #endif /* __BASE_SYS_H_ */
