@@ -1,0 +1,121 @@
+BOARD_PATH := $(PROJECT_ROOT)/board
+
+include $(BOARD_PATH)/bsp/$(BOARD)/Makefile
+
+# cmsis
+CMSIS_ROOT         := $(BOARD_PATH)/CMSIS
+CMSIS_INCLUDE_PATH := $(CMSIS_ROOT)/Core/Include
+CMSIS_DSPLIB_PATH  := $(CMSIS_ROOT)/DSP/Lib/GCC
+CPPFLAGS += -I$(CMSIS_INCLUDE_PATH)
+LDFLAGS  += -L$(CMSIS_DSPLIB_PATH)
+LIBS     += -larm_cortexM7lfdp_math
+
+# for ST supports
+ST_ROOT              := $(BOARD_PATH)/ST
+ST_CORE_ROOT         := $(ST_ROOT)/STM32F7xx
+ST_CORE_INCLUDE_PATH := $(ST_CORE_ROOT)/Include
+CPPFLAGS += -I$(ST_CORE_INCLUDE_PATH)
+
+# basic source codes for STM32F767
+ST_CORE_SOURCE_FILES_PATH := $(ST_CORE_ROOT)/Source/Templates
+ST_CORE_SOURCE_FILES_LIST := system_stm32f7xx.c
+ST_CORE_STARTUP_FILE      := gcc/startup_stm32f767xx.s
+SOURCE_FILES_LIST   += $(addprefix $(ST_CORE_SOURCE_FILES_PATH)/, $(ST_CORE_SOURCE_FILES_LIST))
+ASSEMBLY_FILES_LIST += $(addprefix $(ST_CORE_SOURCE_FILES_PATH)/,$(ST_CORE_STARTUP_FILE))
+
+# ST HAL Driver
+ST_HAL_DIRVER_ROOT         := $(ST_ROOT)/STM32F7xx_HAL_Driver
+ST_HAL_DIRVER_INCLUDE_PATH := $(ST_HAL_DIRVER_ROOT)/Inc
+CPPFLAGS += -I$(ST_HAL_DIRVER_INCLUDE_PATH)
+# ST HAL source codes
+ST_HAL_DRIVER_SOURCE_PATH  := $(ST_HAL_DIRVER_ROOT)/Src
+ST_HAL_SOURCE_FILES_LIST := stm32f7xx_hal.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_adc.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_adc_ex.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_can.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_cec.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_cortex.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_crc.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_crc_ex.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_cryp.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_cryp_ex.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_dac.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_dac_ex.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_dcmi.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_dcmi_ex.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_dfsdm.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_dma.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_dma_ex.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_dma2d.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_dsi.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_eth.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_exti.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_flash.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_flash_ex.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_gpio.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_hash.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_hash_ex.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_hcd.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_i2c.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_i2c_ex.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_i2s.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_irda.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_iwdg.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_jpeg.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_lptim.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_ltdc.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_ltdc_ex.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_mdios.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_mmc.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_nand.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_nor.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_pcd.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_pcd_ex.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_pwr.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_pwr_ex.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_qspi.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_rcc.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_rcc_ex.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_rng.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_rtc.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_rtc_ex.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_sai.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_sai_ex.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_sd.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_sdram.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_smartcard.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_smartcard_ex.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_smbus.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_spdifrx.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_spi.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_spi_ex.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_sram.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_tim.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_tim_ex.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_uart.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_uart_ex.c
+ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_usart.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_hal_wwdg.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_adc.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_crc.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_dac.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_dma.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_dma2d.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_exti.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_fmc.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_gpio.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_i2c.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_lptim.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_pwr.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_rcc.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_rng.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_rtc.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_sdmmc.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_spi.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_tim.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_usart.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_usb.c
+#ST_HAL_SOURCE_FILES_LIST += stm32f7xx_ll_utils.c
+#ST_HAL_SOURCE_FILES_LIST += Legacy/stm32f7xx_hal_can.c
+CPPFLAGS += -I$(ST_HAL_DIRVER_INCLUDE_PATH)/Legacy
+SOURCE_FILES_LIST += $(addprefix $(ST_HAL_DRIVER_SOURCE_PATH)/, $(ST_HAL_SOURCE_FILES_LIST))
