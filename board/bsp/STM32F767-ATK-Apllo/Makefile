@@ -1,6 +1,8 @@
-_src_files :=
-_include_path :=
+bsp_path := $(PROJECT_ROOT)/board/bsp/$(BOARD)
 
-CPPFLAGS += $(addprefix -I$(PROJECT_ROOT)/, $(_include_path))
-SOURCE_FILES_LIST += $(addprefix $(PROJECT_ROOT)/, $(_src_files))
+_src_files := base/stm32f7xx_hal_msp.c base/stm32f7xx_it.c base/sys.c base/iic.c base/gpio.c
+_include_path := base/include
+
+CPPFLAGS += $(addprefix -I$(bsp_path)/, $(_include_path))
+SOURCE_FILES_LIST += $(addprefix $(bsp_path)/, $(_src_files))
 
