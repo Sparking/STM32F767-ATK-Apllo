@@ -54,7 +54,6 @@ assembling_files := $(patsubst %.c, %.s, $(SOURCE_FILES_LIST))
 
 output_bin := $(PROJECT_ROOT)/$(BOARD).bin
 output_elf := $(PROJECT_ROOT)/$(BOARD).elf
-#output_hex := $(PROJECT_ROOT)/stm32l4xx.hex
 
 define compile_c
 @echo CC	$<
