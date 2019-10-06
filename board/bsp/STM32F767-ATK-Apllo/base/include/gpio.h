@@ -5,8 +5,8 @@
 #include <stm32f7xx_hal_gpio.h>
 
 typedef struct {
-        GPIO_TypeDef *gpio;
-        unsigned int  pin;
+	GPIO_TypeDef *gpio;
+	unsigned int  pin;
 } single_gpio_pin_t;
 
 __STATIC_FORCEINLINE void gpio_clk_enable(GPIO_TypeDef *__RESTRICT GPIO)

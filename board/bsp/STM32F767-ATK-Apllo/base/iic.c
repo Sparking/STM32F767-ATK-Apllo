@@ -1,6 +1,9 @@
 #include "sys.h"
 #include "iic.h"
 
+#define I2C_SIGNAL_NOACK    GPIO_PIN_SET
+#define I2C_SIGNAL_ACK      GPIO_PIN_RESET
+
 #define I2C_MUTEX_LOCK(dev) \
     xSemaphoreTake((dev)->bus->mutex, portMAX_DELAY)
 #define I2C_MUTEX_UNLOCK(dev) \
@@ -22,10 +25,8 @@
 #define I2C_SDA_MODE_IN(dev) \
     gpio_switch_io_mode((dev)->bus->sda.gpio, (dev)->bus->sda.pin, GPIO_MODE_INPUT)
 
-#define I2C_SIGNAL_NOACK    GPIO_PIN_SET
-#define I2C_SIGNAL_ACK      GPIO_PIN_RESET
-
-void i2c_bus_init(i2c_bus_t *bus)
+void i2c_bus_init(i2c_bus_t *__RESTRICT bus, GPIO_TypeDef *scl_gpio, const uint16_t scl_pin,
+        GPIO_TypeDef *sda_gpio, const uint16_t sda_pin)
 {
     GPIO_InitTypeDef GPIO_Initure;
 
@@ -33,19 +34,23 @@ void i2c_bus_init(i2c_bus_t *bus)
     GPIO_Initure.Speed= GPIO_SPEED_FAST;
     GPIO_Initure.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_Initure.Alternate = 0;
-    gpio_clk_enable(bus->scl.gpio);
-    gpio_clk_enable(bus->sda.gpio);
-    GPIO_Initure.Pin  = bus->scl.pin;
-    HAL_GPIO_Init(bus->scl.gpio, &GPIO_Initure);
-    GPIO_Initure.Pin = bus->sda.pin;
-    HAL_GPIO_Init(bus->sda.gpio, &GPIO_Initure);
-    gpio_set_pin(bus->scl.gpio, bus->scl.pin);
-    gpio_set_pin(bus->sda.gpio, bus->sda.pin);
+    gpio_clk_enable(scl_gpio);
+    gpio_clk_enable(sda_gpio);
+    GPIO_Initure.Pin  = scl_pin;
+    HAL_GPIO_Init(scl_gpio, &GPIO_Initure);
+    GPIO_Initure.Pin = sda_pin;
+    HAL_GPIO_Init(sda_gpio, &GPIO_Initure);
+    gpio_set_pin(scl_gpio, scl_pin);
+    gpio_set_pin(sda_gpio, sda_pin);
 
+    bus->scl.gpio = scl_gpio;
+    bus->scl.pin = scl_pin;
+    bus->sda.gpio = sda_gpio;
+    bus->sda.pin = sda_pin;
     bus->mutex = xSemaphoreCreateMutex();
 }
 
-void i2c_start(const i2c_device_t *__RESTRICT i2c_dev)
+void i2c_start(const i2c_dev_t *__RESTRICT i2c_dev)
 {
     I2C_SDA_MODE_OUT(i2c_dev);
     I2C_SET_SDA(i2c_dev);
@@ -56,7 +61,7 @@ void i2c_start(const i2c_device_t *__RESTRICT i2c_dev)
     I2C_RESET_SCL(i2c_dev);
 }
 
-void i2c_stop(const i2c_device_t *__RESTRICT i2c_dev)
+void i2c_stop(const i2c_dev_t *__RESTRICT i2c_dev)
 {
     I2C_SDA_MODE_OUT(i2c_dev);
 	I2C_RESET_SDA(i2c_dev);
@@ -67,9 +72,9 @@ void i2c_stop(const i2c_device_t *__RESTRICT i2c_dev)
 	I2C_RESET_SCL(i2c_dev);
 }
 
-uint8_t i2c_wait_ack(const i2c_device_t *__RESTRICT i2c_dev)
+unsigned char i2c_wait_ack(const i2c_dev_t *__RESTRICT i2c_dev)
 {
-    uint8_t ucErrTime = 0;
+    unsigned char ucErrTime = 0;
 
     I2C_SET_SDA(i2c_dev);
     I2C_SDA_MODE_IN(i2c_dev);
@@ -88,7 +93,7 @@ uint8_t i2c_wait_ack(const i2c_device_t *__RESTRICT i2c_dev)
     return I2C_STATUS_OK;
 }
 
-void i2c_send_ack(const i2c_device_t *__RESTRICT i2c_dev, const GPIO_PinState ack)
+void i2c_send_ack(const i2c_dev_t *__RESTRICT i2c_dev, const GPIO_PinState ack)
 {
     I2C_RESET_SCL(i2c_dev);
     I2C_SDA_MODE_OUT(i2c_dev);
@@ -99,11 +104,11 @@ void i2c_send_ack(const i2c_device_t *__RESTRICT i2c_dev, const GPIO_PinState ac
     I2C_RESET_SCL(i2c_dev);
 }
 
-void i2c_base_send_byte(const i2c_device_t *__RESTRICT i2c_dev, uint8_t data)
+void i2c_base_send_byte(const i2c_dev_t *__RESTRICT i2c_dev, unsigned char data)
 {
     I2C_SDA_MODE_OUT(i2c_dev);
     I2C_RESET_SCL(i2c_dev);
-    for(uint8_t t = 0; t < 8; t++) {
+    for(unsigned char t = 0; t < 8; t++) {
         I2C_WRITE_SDA(i2c_dev, data >> 7 ? GPIO_PIN_SET : GPIO_PIN_RESET);
         data <<= 1;
         I2C_SET_SCL(i2c_dev);
@@ -113,9 +118,9 @@ void i2c_base_send_byte(const i2c_device_t *__RESTRICT i2c_dev, uint8_t data)
     }
 }
 
-uint8_t i2c_base_read_byte(const i2c_device_t *__RESTRICT i2c_dev, const GPIO_PinState ack)
+unsigned char i2c_base_read_byte(const i2c_dev_t *__RESTRICT i2c_dev, const GPIO_PinState ack)
 {
-    uint8_t i, receive = 0;
+    unsigned char i, receive = 0;
 
     I2C_SDA_MODE_IN(i2c_dev);
     for(i = 0; i < 8; i++) {
@@ -132,9 +137,9 @@ uint8_t i2c_base_read_byte(const i2c_device_t *__RESTRICT i2c_dev, const GPIO_Pi
     return receive;
 }
 
-uint8_t i2c_write_byte(const i2c_device_t *__RESTRICT i2c_dev, const uint8_t reg, const uint8_t data)
+unsigned char i2c_write_byte(const i2c_dev_t *__RESTRICT i2c_dev, const unsigned char reg, const unsigned char data)
 {
-    uint8_t ret;
+    unsigned char ret;
 
     I2C_MUTEX_LOCK(i2c_dev);
     ret = I2C_STATUS_OK;
@@ -156,9 +161,9 @@ stop_i2c_write_byte:
     return ret;
 }
 
-uint8_t i2c_read_byte(const i2c_device_t *__RESTRICT i2c_dev, const uint8_t reg)
+unsigned char i2c_read_byte(const i2c_dev_t *__RESTRICT i2c_dev, const unsigned char reg)
 {
-    uint8_t data;
+    unsigned char data;
 
     I2C_MUTEX_LOCK(i2c_dev);
     i2c_start(i2c_dev);
@@ -176,10 +181,10 @@ uint8_t i2c_read_byte(const i2c_device_t *__RESTRICT i2c_dev, const uint8_t reg)
     return data;
 }
 
-uint8_t i2c_read_bytes(const i2c_device_t *__RESTRICT i2c_dev, uint8_t *__RESTRICT buf,
-    const uint8_t len, const uint8_t reg)
+unsigned char i2c_read_bytes(const i2c_dev_t *__RESTRICT i2c_dev, unsigned char *__RESTRICT buf,
+    const unsigned char len, const unsigned char reg)
 {
-    uint8_t i, ret;
+    unsigned char i, ret;
     GPIO_PinState ack_signal;
 
     I2C_MUTEX_LOCK(i2c_dev);
@@ -208,10 +213,10 @@ stop_i2c_read_bytes:
     return ret;
 }
 
-uint8_t i2c_write_bytes(const i2c_device_t *__RESTRICT i2c_dev, const uint8_t *__RESTRICT buf,
-    const uint8_t len, const uint8_t reg)
+unsigned char i2c_write_bytes(const i2c_dev_t *__RESTRICT i2c_dev, const unsigned char *__RESTRICT buf,
+    const unsigned char len, const unsigned char reg)
 {
-    uint8_t i, ret;
+    unsigned char i, ret;
 
     I2C_MUTEX_LOCK(i2c_dev);
     ret = I2C_STATUS_OK;
@@ -237,10 +242,10 @@ stop_i2c_write_bytes:
     return ret;
 }
 
-uint8_t i2c_only_read_bytes(const i2c_device_t *__RESTRICT i2c_dev, uint8_t *__RESTRICT buf,
-    const uint8_t len)
+unsigned char i2c_only_read_bytes(const i2c_dev_t *__RESTRICT i2c_dev, unsigned char *__RESTRICT buf,
+    const unsigned char len)
 {
-    uint8_t ret, i;
+    unsigned char ret, i;
     GPIO_PinState ack_signal;
 
     I2C_MUTEX_LOCK(i2c_dev);

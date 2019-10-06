@@ -9,6 +9,7 @@ void uart_wrch(USART_TypeDef *uart, char ch)
     uart->TDR = ch;
 }
 
+/* 标准输入输出重定向函数 */
 #if defined ( __CC_ARM )
 #pragma import(__use_no_semihosting)
 struct __FILE {
