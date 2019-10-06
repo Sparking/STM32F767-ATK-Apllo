@@ -1,9 +1,6 @@
-#ifndef __MAIN_H_
-#define __MAIN_H_
+#pragma once
 
 #include <FreeRTOS.h>
 #include <task.h>
 #include <sys.h>
-#include <iic.h>
-
-#endif /* End of __MAIN_H_ */
+#include <at24c02.h>

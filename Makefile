@@ -15,7 +15,6 @@ CFLAGS  += -g -gdwarf-2
 CFLAGS  += -mfpu=fpv5-d16 -mfloat-abi=hard
 ASFLAGS := $(CFLAGS)
 
-
 CFLAGS += -O0
 CFLAGS += -u _printf_float
 CFLAGS += -ffunction-sections -fdata-sections -ffp-contract=off
@@ -56,38 +55,38 @@ output_bin := $(PROJECT_ROOT)/$(BOARD).bin
 output_elf := $(PROJECT_ROOT)/$(BOARD).elf
 
 define compile_c
-@echo CC	$<
-@$(CC) $(CFLAGS) $(CPPFLAGS) -MMD -c -o $@ $<
+@echo CC	$1
+@$(CC) $(CFLAGS) $(CPPFLAGS) -MMD -c -o $1 $2
 endef
 
 define compile_s
-@echo AS	$<
-@$(AS) $(ASFLAGS) -c -o $@ $<
+@echo AS	$1
+@$(AS) $(ASFLAGS) -c -o $1 $2
 endef
 
 define link_all
-@echo LD	$@
-@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+@echo LD	$1
+@$(CC) $(CFLAGS) $(LDFLAGS) -o $1 $2 $(LIBS)
 endef
 
 define objcopy_binary
-@echo OBJCOPY	$@
-@$(OBJCOPY) -O binary $< $@
+@echo OBJCOPY	$1
+@$(OBJCOPY) -O binary $2 $1
 endef
 
 .PHONY: all
 all: $(output_bin)
 	@$(SIZE) $(notdir $(output_elf))
 $(output_elf): $(objs)
-	$(call link_all)
+	$(call link_all, $@, $^)
 $(output_bin): $(output_elf)
-	$(call objcopy_binary)
+	$(call objcopy_binary, $@, $^)
 -include $(depend_files)
 
 $(c_objs): %.o: %.c
-	$(call compile_c)
+	$(call compile_c, $@, $<)
 $(s_objs): %.o: %.s
-	$(call compile_s)
+	$(call compile_s, $@, $<)
 
 .PHONY: assembly
 assembly: $(assembling_files)

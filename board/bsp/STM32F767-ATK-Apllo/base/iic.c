@@ -137,7 +137,7 @@ unsigned char i2c_base_read_byte(const i2c_dev_t *__RESTRICT i2c_dev, const GPIO
     return receive;
 }
 
-unsigned char i2c_write_byte(const i2c_dev_t *__RESTRICT i2c_dev, const unsigned char reg, const unsigned char data)
+unsigned char i2c_write_byte(const i2c_dev_t *__RESTRICT i2c_dev, const unsigned char data, const unsigned char reg)
 {
     unsigned char ret;
 

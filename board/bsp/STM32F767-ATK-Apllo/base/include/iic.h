@@ -51,8 +51,8 @@ extern void i2c_bus_init(i2c_bus_t *__RESTRICT bus, GPIO_TypeDef *scl_gpio, cons
  * @param data 需要写入的1字节数据
  * @returns 返回写入的状态, 成功返回I2C_STATUS_OK, 失败返回I2C_STATUS_FAILED
  */
-extern unsigned char i2c_write_byte(const i2c_dev_t *__RESTRICT i2c_dev, const unsigned char reg,
-        const unsigned char data);
+extern unsigned char i2c_write_byte(const i2c_dev_t *__RESTRICT i2c_dev, const unsigned char data,
+        const unsigned char reg);
 
 /**
  * @brief i2c_read_byte 从IIC设备读出一个字节的数据
