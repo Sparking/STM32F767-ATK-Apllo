@@ -3,6 +3,7 @@
 int main(void)
 {
     system_init(115200);
+    rng_init();
     stm32f767_atk_apllo_iic_init();
     stm32f767_atk_apllo_led_init();
 
@@ -15,6 +16,9 @@ int main(void)
         stm32f767_atk_apllo_led_set(STM32F767_ATK_APLLO_LED_GREEN, STM32F767_ATK_APLLO_LED_OFF);
         stm32f767_atk_apllo_led_set(STM32F767_ATK_APLLO_LED_RED, STM32F767_ATK_APLLO_LED_ON);
         delay_ms(5000);
+        if (rng_ready()) {
+            printf("random number = %u\r\n", rng_get_random());
+        }
     }
 
     return 0;
