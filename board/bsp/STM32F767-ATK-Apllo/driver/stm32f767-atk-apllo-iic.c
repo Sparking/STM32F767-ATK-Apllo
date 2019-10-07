@@ -1,5 +1,5 @@
 #include <iic.h>
-#include "stm32f767-atk-apllo-iic-dev.h"
+#include "stm32f767-atk-apllo-iic.h"
 
 i2c_bus_t i2c_bus[STM32F767_ATK_APLLO_IIC_DEV_BUS_NUM];
 i2c_dev_t i2c_at24c02;
