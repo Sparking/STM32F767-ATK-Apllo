@@ -1,6 +1,7 @@
 #ifndef __LCD_CONFIG_H_
 #define __LCD_CONFIG_H_
 
+#include <string.h>
 #include "stm32f7xx_hal.h"
 #include "common/maths.h"
 #include "font.h"
@@ -15,7 +16,7 @@ struct __ltdc_devicetypedef{
         uint16_t hsync;    /* 水平同步宽度 */
         uint16_t vsync;    /* 垂直同步宽度 */
         uint16_t active_width; /* 有效宽度 */
-        uint16_t active_heigh; /* 有效高度 */
+        uint16_t active_height;/* 有效高度 */
 };
 
 extern const struct __ltdc_devicetypedef __ltdc_lcd_device;

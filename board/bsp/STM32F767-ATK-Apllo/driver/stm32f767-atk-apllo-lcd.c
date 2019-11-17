@@ -9,15 +9,30 @@ const struct __ltdc_devicetypedef __ltdc_lcd_device = { /* 方便统一修改 */
     .hfp      = 5,
     .vfp      = 8,
     .active_width = 480,
-    .active_heigh = 272
+    .active_height = 272
 };
 
 #define __lcd_frame_buff ((lcd_pixel_t *)(LCD_FRAME_BUFF_ADDRESS));
 
+static char LTDC_Clk_Set(const unsigned int pllsain, const unsigned int pllsair, const unsigned int pllsaidivr)
+{
+    RCC_PeriphCLKInitTypeDef PeriphClkIniture;
+
+    //LTDC输出像素时钟，需要根据自己所使用的LCD数据手册来配置！
+    PeriphClkIniture.PeriphClockSelection = RCC_PERIPHCLK_LTDC;   //LTDC时钟
+    PeriphClkIniture.PLLSAI.PLLSAIN = pllsain;
+    PeriphClkIniture.PLLSAI.PLLSAIR = pllsair;
+    PeriphClkIniture.PLLSAIDivR = pllsaidivr;
+
+    return (HAL_RCCEx_PeriphCLKConfig(&PeriphClkIniture) == HAL_OK); //配置像素时钟，这里配置为时钟为18.75MHZ
+}
+
+#if 1
 void stm32f767_atk_apllo_lcd_init(void)
 {
     uint16_t ltdc_hconfig_value, ltdc_vconfig_value;
 
+    LTDC_Clk_Set(288, 4, RCC_PLLSAIDIVR_8);
     HAL_LTDC_MspInit(NULL);
 /**** 同步信号和时钟极性配置 ****/
 /* LTDC->GCR 全局控制寄存器
@@ -43,7 +58,7 @@ void stm32f767_atk_apllo_lcd_init(void)
     LTDC->BPCR = ((ltdc_hconfig_value) << 16) | (ltdc_vconfig_value);
     /* LTDC有效宽度配置 */
     ltdc_hconfig_value += __ltdc_lcd_device.active_width;
-    ltdc_vconfig_value += __ltdc_lcd_device.active_heigh;
+    ltdc_vconfig_value += __ltdc_lcd_device.active_height;
     LTDC->AWCR = ((ltdc_hconfig_value) << 16) | (ltdc_vconfig_value);
     /* LTDC总宽度配置 */
     ltdc_hconfig_value += __ltdc_lcd_device.hfp;
@@ -80,10 +95,10 @@ void stm32f767_atk_apllo_lcd_init(void)
  * WVSTPOS[10:0]:  窗口垂直起始位置
  */
     ltdc_vconfig_value = __ltdc_lcd_device.vsync + __ltdc_lcd_device.vbp;
-    LTDC_Layer1->WVPCR = ((ltdc_vconfig_value + __ltdc_lcd_device.active_heigh - 1) << 16)
+    LTDC_Layer1->WVPCR = ((ltdc_vconfig_value + __ltdc_lcd_device.active_height - 1) << 16)
             | ltdc_vconfig_value;
 #if (LTDC_LAYER_2_ENABLE != 0U) /* 如果有使能第二层 */
-    LTDC_Layer2->WVPCR = ((ltdc_vconfig_value + __ltdc_lcd_device.active_heigh - 1) << 16)
+    LTDC_Layer2->WVPCR = ((ltdc_vconfig_value + __ltdc_lcd_device.active_height - 1) << 16)
             | ltdc_vconfig_value;
 #endif
 /**** LTDC层像素输入格式 ****/
@@ -114,13 +129,13 @@ void stm32f767_atk_apllo_lcd_init(void)
     /* 480 * 2(RGB565) => 0x03C0 */
     ltdc_hconfig_value  = __ltdc_lcd_device.active_width << 1;
     LTDC_Layer1->CFBLR  = (ltdc_hconfig_value << 16) | (ltdc_hconfig_value + 3); /* 0x03C003C3 */
-    LTDC_Layer1->CFBLNR = __ltdc_lcd_device.active_heigh;     /* 272 */
+    LTDC_Layer1->CFBLNR = __ltdc_lcd_device.active_height;     /* 272 */
 #if (LTDC_LAYER_2_ENABLE != 0U) /* 如果有使能第二层 */
     LTDC_Layer2->CFBAR  = LCD_FRAME_BUFF_ADDRESS 
-            + __ltdc_lcd_device.active_heigh * __ltdc_lcd_device.active_width;
+            + __ltdc_lcd_device.active_height * __ltdc_lcd_device.active_width;
     ltdc_hconfig_value  = __ltdc_lcd_device.active_width << 1;
     LTDC_Layer2->CFBLR  = (ltdc_hconfig_value << 16) | (ltdc_hconfig_value + 3);
-    LTDC_Layer2->CFBLNR = __ltdc_lcd_device.active_heigh;
+    LTDC_Layer2->CFBLNR = __ltdc_lcd_device.active_height;
 #endif
 /**** CLUT加载RGB值及其 ****/
 /* LTDC_Layerx->CLUTWR CLUT写寄存器
@@ -193,6 +208,62 @@ void stm32f767_atk_apllo_lcd_init(void)
 /**** 使能LCD-TFT控制器 ****/
     LTDC->GCR  |= 0x1;
 }
+#else
+static LTDC_HandleTypeDef  LTDC_Handler;
+
+static void LTDC_Layer_Parameter_Config(void *h, unsigned int bufaddr, unsigned char layerx,
+        unsigned char pixformat, unsigned char alpha, unsigned char alpha0,
+        unsigned char bfac1, unsigned char bfac2, unsigned int bkcolor)
+{
+    LTDC_LayerCfgTypeDef pLayerCfg;
+
+    pLayerCfg.WindowX0=0;                       //窗口起始X坐标
+    pLayerCfg.WindowY0=0;                       //窗口起始Y坐标
+    pLayerCfg.WindowX1=__ltdc_lcd_device.active_width;          //窗口终止X坐标
+    pLayerCfg.WindowY1=__ltdc_lcd_device.active_height;         //窗口终止Y坐标
+    pLayerCfg.PixelFormat=pixformat;            //像素格式
+    pLayerCfg.Alpha=alpha;                      //Alpha值设置，0~255,255为完全不透明
+    pLayerCfg.Alpha0=alpha0;                    //默认Alpha值
+    pLayerCfg.BlendingFactor1=(unsigned int)bfac1<<8;    //设置层混合系数
+    pLayerCfg.BlendingFactor2=(unsigned int)bfac2<<8;    //设置层混合系数
+    pLayerCfg.FBStartAdress=bufaddr;            //设置层颜色帧缓存起始地址
+    pLayerCfg.ImageWidth=__ltdc_lcd_device.active_width;        //设置颜色帧缓冲区的宽度    
+    pLayerCfg.ImageHeight=__ltdc_lcd_device.active_height;      //设置颜色帧缓冲区的高度
+    pLayerCfg.Backcolor.Red=(unsigned char)(bkcolor&0X00FF0000)>>16;   //背景颜色红色部分
+    pLayerCfg.Backcolor.Green=(unsigned char)(bkcolor&0X0000FF00)>>8;  //背景颜色绿色部分
+    pLayerCfg.Backcolor.Blue=(unsigned char)bkcolor&0X000000FF;        //背景颜色蓝色部分
+    HAL_LTDC_ConfigLayer(h, &pLayerCfg,layerx);   //设置所选中的层
+}
+
+void stm32f767_atk_apllo_lcd_init(void)
+{
+    memset(&LTDC_Handler, 0, sizeof(LTDC_Handler));
+
+    LTDC_Clk_Set(288, 4, RCC_PLLSAIDIVR_8);
+    LTDC_Handler.Instance = LTDC;
+    LTDC_Handler.Init.HSPolarity = LTDC_HSPOLARITY_AL;            //水平同步极性
+    LTDC_Handler.Init.VSPolarity = LTDC_VSPOLARITY_AL;            //垂直同步极性
+    LTDC_Handler.Init.DEPolarity = LTDC_DEPOLARITY_AL;            //数据使能极性
+    LTDC_Handler.Init.PCPolarity = LTDC_PCPOLARITY_IPC;           //像素时钟极性
+    LTDC_Handler.Init.HorizontalSync = __ltdc_lcd_device.hsync - 1;             //水平同步宽度
+    LTDC_Handler.Init.VerticalSync = __ltdc_lcd_device.vsync-1;               //垂直同步宽度
+    LTDC_Handler.Init.AccumulatedHBP = __ltdc_lcd_device.hsync + __ltdc_lcd_device.hbp - 1; //水平同步后沿宽度
+    LTDC_Handler.Init.AccumulatedVBP = __ltdc_lcd_device.vsync + __ltdc_lcd_device.vbp - 1; //垂直同步后沿高度
+    LTDC_Handler.Init.AccumulatedActiveW = __ltdc_lcd_device.hsync + __ltdc_lcd_device.hbp + __ltdc_lcd_device.active_width - 1;//有效宽度
+    LTDC_Handler.Init.AccumulatedActiveH = __ltdc_lcd_device.vsync + __ltdc_lcd_device.vbp + __ltdc_lcd_device.active_height - 1;//有效高度
+    LTDC_Handler.Init.TotalWidth = __ltdc_lcd_device.hsync + __ltdc_lcd_device.hbp + __ltdc_lcd_device.active_width + __ltdc_lcd_device.hfp - 1;   //总宽度
+    LTDC_Handler.Init.TotalHeigh = __ltdc_lcd_device.vsync + __ltdc_lcd_device.vbp + __ltdc_lcd_device.active_height + __ltdc_lcd_device.vfp - 1;  //总高度
+    LTDC_Handler.Init.Backcolor.Red = 0;           //屏幕背景层红色部分
+    LTDC_Handler.Init.Backcolor.Green = 0;         //屏幕背景层绿色部分
+    LTDC_Handler.Init.Backcolor.Blue = 0;          //屏幕背景色蓝色部分
+    HAL_LTDC_Init(&LTDC_Handler);
+
+    LTDC_Layer_Parameter_Config(&LTDC_Handler, LCD_FRAME_BUFF_ADDRESS, 0, LTDC_PIXEL_FORMAT, 255, 0, 6, 7,0X000000);
+    HAL_LTDC_SetWindowPosition(&LTDC_Handler, 0, 0, 0);
+    HAL_LTDC_SetWindowSize(&LTDC_Handler, __ltdc_lcd_device.active_width, __ltdc_lcd_device.active_height, 0);//设置窗口大小
+    stm32f767_atk_apllo_lcd_clear(0x12312312);
+}
+#endif
 
 void HAL_LTDC_MspInit(LTDC_HandleTypeDef *hltdc)
 {
@@ -266,11 +337,11 @@ static lcd_pixel_t *lcd_get_point_addr(const lcd_layer_e layer, const struct poi
     lcd_pixel_t *frame = __lcd_frame_buff;
 
     if (layer == LCD_LAYER_2)
-        frame = (lcd_pixel_t *)((uint32_t)frame + __ltdc_lcd_device.active_heigh * __ltdc_lcd_device.active_width);
+        frame = (lcd_pixel_t *)((uint32_t)frame + __ltdc_lcd_device.active_height * __ltdc_lcd_device.active_width);
 
     return (dir == LCD_DIRECTION_V) ?
           &frame[__ltdc_lcd_device.active_width *
-            (__ltdc_lcd_device.active_heigh - pos.x - 1) + pos.y] :
+            (__ltdc_lcd_device.active_height - pos.x - 1) + pos.y] :
           &frame[pos.y * __ltdc_lcd_device.active_width + pos.x];
 }
 
@@ -342,7 +413,7 @@ static void static_stm32f767_atk_apllo_lcd_convert_xy(const lcd_window_t *hlfw,
         *lines     = hlfw->end_pos.x - hlfw->start_pos.x;
         *line_size = hlfw->end_pos.y - hlfw->start_pos.y;
         *converted_x = hlfw->start_pos.y;
-        *converted_y = __ltdc_lcd_device.active_heigh - hlfw->end_pos.x;
+        *converted_y = __ltdc_lcd_device.active_height - hlfw->end_pos.x;
     }
     else {
         *lines     = hlfw->end_pos.y - hlfw->start_pos.y;
@@ -407,6 +478,11 @@ void stm32f767_atk_apllo_lcd_flush(void)
 {
     unsigned int time = 0;
 
-    while (DMA2D->CR & 0x0001 && time++ < (~0U))
-        continue;
+    while ((DMA2D->ISR & (1 << 1)) == 0) {   //等待传输完成
+        time++;
+        if (time > 0X1FFFFF)
+            break;  //超时退出
+    }
+
+    DMA2D->IFCR |= 1 << 1; //清除传输完成标志
 }

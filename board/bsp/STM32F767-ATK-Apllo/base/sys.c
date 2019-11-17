@@ -94,6 +94,13 @@ void Error_Handler(void)
         continue;
 }
 
+void Cache_Enable(void)
+{
+    SCB_EnableICache();//使能I-Cache
+    SCB_EnableDCache();//使能D-Cache    
+	SCB->CACR|=1<<2;   //强制D-Cache透写,如不开启,实际使用中可能遇到各种问题	
+}
+
 static void uart1_init(const unsigned int baudrate)
 {
     huart1.Instance = USART2;
@@ -136,9 +143,9 @@ void system_init(const unsigned int baudrate)
     }
     /** Activate the Over-Drive mode 
      */
-    if (HAL_PWREx_EnableOverDrive() != HAL_OK) {
-        Error_Handler();
-    }
+    //if (HAL_PWREx_EnableOverDrive() != HAL_OK) {
+    //    Error_Handler();
+    //}
     /** Initializes the CPU, AHB and APB busses clocks 
      */
     RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
@@ -158,5 +165,6 @@ void system_init(const unsigned int baudrate)
         Error_Handler();
     }
 
+    Cache_Enable();
     uart1_init(baudrate);
 }
