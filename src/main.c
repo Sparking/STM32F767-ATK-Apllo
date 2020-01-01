@@ -21,22 +21,9 @@ void lcd_show(void)
 
 int main(void)
 {
-    struct image *img = (struct image *)buff;
-    img->height = 480;
-    img->width = 640;
-
     system_init(115200);
     rng_init();
     stm32f767_atk_apllo_sdram_init();
-
-    unsigned char *ptr = (unsigned char *)Bank5_SDRAM_ADDR;
-    for (int i = 0; i < 480 * 272 * 2; ++i)
-        ptr[i] = i % 255;
-    for (int i = 0; i < 480 * 272 * 2; ++i)
-        if (ptr[i] != i % 255) {
-            while (1);
-        }
-
     stm32f767_atk_apllo_lcd_init();
     stm32f767_atk_apllo_lcd_clear(LCD_BG_COLOR);
     stm32f767_atk_apllo_led_init();
