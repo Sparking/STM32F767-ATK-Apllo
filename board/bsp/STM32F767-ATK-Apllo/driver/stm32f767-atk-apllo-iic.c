@@ -1,11 +1,14 @@
 #include <iic.h>
 #include "stm32f767-atk-apllo-iic.h"
+#include "stm32f767-atk-apllo-mpu9250.h"
 
-i2c_bus_t i2c_bus[STM32F767_ATK_APLLO_IIC_DEV_BUS_NUM];
 i2c_dev_t i2c_at24c02;
 
 void stm32f767_atk_apllo_iic_init(void)
 {
-    i2c_bus_init(&i2c_bus[0], GPIOH, GPIO_PIN_4, GPIOH, GPIO_PIN_5);
-    i2c_init(&i2c_at24c02, &i2c_bus[0], 0xA0 >> 1);
+	static i2c_bus_t i2c_at24c02_bus;
+
+    i2c_bus_init(&i2c_at24c02_bus, GPIOH, GPIO_PIN_4, GPIOH, GPIO_PIN_5);
+    i2c_init(&i2c_at24c02, &i2c_at24c02_bus, 0xA0 >> 1);
+    stm32f767_atk_apllo_mpu9250_init();
 }

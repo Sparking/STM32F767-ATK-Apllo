@@ -1,8 +1,6 @@
 #include <string.h>
 #include <main.h>
 
-static char buff[sizeof(struct image) + 640 * 480];
-
 void lcd_show(void)
 {
     char str[29];
@@ -43,11 +41,6 @@ int main(void)
     stm32f767_atk_apllo_lcd_clear(LCD_BG_COLOR);
     stm32f767_atk_apllo_led_init();
     stm32f767_atk_apllo_iic_init();
-
-    lcd_show();
-    memset(img->data, 0, 480 * 640);
-    printf("Hello World!\r\n");
-    printf("at24c02[0] = %d\r\n", (int)at24c02_read_byte(0));
     while (1) {
         stm32f767_atk_apllo_led_set(STM32F767_ATK_APLLO_LED_GREEN, STM32F767_ATK_APLLO_LED_ON);
         stm32f767_atk_apllo_led_set(STM32F767_ATK_APLLO_LED_RED, STM32F767_ATK_APLLO_LED_OFF);
