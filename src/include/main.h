@@ -8,4 +8,5 @@
 #include <stm32f767-atk-apllo-lcd.h>
 #include <stm32f767-atk-apllo-sdram.h>
 #include <stm32f767-atk-apllo-at24c02.h>
+#include <stm32f767-atk-apllo-mpu9250.h>
 #include <image/image.h>

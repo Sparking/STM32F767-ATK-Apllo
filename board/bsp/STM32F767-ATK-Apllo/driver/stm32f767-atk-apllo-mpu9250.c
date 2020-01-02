@@ -127,34 +127,93 @@
 #define MPU920_DEVICE_ID        0x71
 #define AK8963_DEVICE_ID        0x48
 
-static i2c_dev_t i2c_mpu9250_acc;
-static i2c_dev_t i2c_mpu9250_mag;
+static i2c_dev_t i2c_mpu9250;
+static i2c_dev_t i2c_ak8963;
 
-void stm32f767_atk_apllo_mpu9250_init(i2c_bus_t *bus)
+bool stm32f767_atk_apllo_mpu9250_init(i2c_bus_t *__RESTRICT bus)
 {
-	unsigned char value;
+    unsigned char value;
 
-	i2c_init(&i2c_mpu9250_acc, bus, 0x68);
-	i2c_init(&i2c_mpu9250_mag, bus, 0x0C);
-	i2c_write_byte(&i2c_mpu9250_acc, 0x80, MPU_PWR_MGMT1);
-	delay_ms(100);
-	i2c_write_byte(&i2c_mpu9250_acc, 0x00, MPU_PWR_MGMT1);
-	// TODO:
-	i2c_write_byte(&i2c_mpu9250_acc, 0x00, MPU_INT_ENABLE);
-	i2c_write_byte(&i2c_mpu9250_acc, 0x00, MPU_USER_CTRL);
-	i2c_write_byte(&i2c_mpu9250_acc, 0x00, MPU_FIFO_EN);
-	i2c_write_byte(&i2c_mpu9250_acc, 0x82, MPU_INT_PIN_CFG);
-	value = i2c_read_byte(&i2c_mpu9250_acc, MPU_WHO_AM_I);
-	if (value == MPU920_DEVICE_ID) {
-        printf("Init MPU9250 Success\r\n");
+    i2c_init(&i2c_mpu9250, bus, 0x68);
+    i2c_init(&i2c_ak8963, bus, 0x0C);
+    i2c_write_byte(&i2c_mpu9250, 0x80, MPU_PWR_MGMT1);
+    delay_ms(100);
+    i2c_write_byte(&i2c_mpu9250, 0x00, MPU_PWR_MGMT1);
+    // TODO:
+    i2c_write_byte(&i2c_mpu9250, 0x00, MPU_INT_ENABLE);
+    i2c_write_byte(&i2c_mpu9250, 0x00, MPU_USER_CTRL);
+    i2c_write_byte(&i2c_mpu9250, 0x00, MPU_FIFO_EN);
+    i2c_write_byte(&i2c_mpu9250, 0x82, MPU_INT_PIN_CFG);
+    value = i2c_read_byte(&i2c_mpu9250, MPU_WHO_AM_I);
+    if (value != MPU920_DEVICE_ID)
+        return false;
+
+    value = i2c_read_byte(&i2c_ak8963, AK8963_REG_WIA);
+    return value == AK8963_DEVICE_ID;
+}
+
+float stm32f767_atk_apllo_mpu9250_temperature(void)
+{
+    float temp;
+    short raw;
+    unsigned char buf[2];
+
+    if (i2c_read_bytes(&i2c_mpu9250, buf, 2, MPU_TEMP_OUT_H) == I2C_STATUS_OK) {
+        raw = ((unsigned short)buf[0] << 8) | buf[1];
+        temp = 21 + ((double)raw) / 333.87;
     } else {
-        printf("Init MPU9250 Failed\r\n");
+        temp = 0.0f;
     }
-	value = i2c_read_byte(&i2c_mpu9250_mag, AK8963_REG_WIA);
-    if (value == AK8963_DEVICE_ID) {
-        printf("Init AK8963 Success\r\n");
+
+    return temp;
+}
+
+bool stm32f767_atk_apllo_mpu9250_gyroscope(short *__RESTRICT gx, short *__RESTRICT gy, short *__RESTRICT gz)
+{
+    unsigned char buf[6], res;
+
+    if (i2c_read_bytes(&i2c_mpu9250, buf, 6, MPU_GYRO_XOUT_H) == I2C_STATUS_OK) {
+        *gx = ((unsigned short)buf[0] << 8) | buf[1];
+        *gy = ((unsigned short)buf[2] << 8) | buf[3];
+        *gz = ((unsigned short)buf[4] << 8) | buf[5];
+        res = true;
     } else {
-        printf("Init AK8963 Failed\r\n");
+        res = false;
     }
+
+    return res;
+}
+
+bool stm32f767_atk_apllo_mpu9250_accelerometer(short *__RESTRICT ax, short *__RESTRICT ay, short *__RESTRICT az)
+{
+    unsigned char buf[6], res;
+
+    if (i2c_read_bytes(&i2c_mpu9250, buf, 6, MPU_ACCEL_XOUT_H) == I2C_STATUS_OK) {
+        *ax = ((unsigned short)buf[0] << 8) | buf[1];
+        *ay = ((unsigned short)buf[2] << 8) | buf[3];
+        *az = ((unsigned short)buf[4] << 8) | buf[5];
+        res = true;
+    } else {
+        res = false;
+    }
+
+    return res;
+}
+
+bool stm32f767_atk_apllo_mpu9250_magnetometer(short *__RESTRICT mx, short *__RESTRICT my, short *__RESTRICT mz)
+{
+    unsigned char buf[6], res;
+
+    if (i2c_read_bytes(&i2c_ak8963, buf, 6, AK8963_REG_HXL) == I2C_STATUS_OK) {
+        *mx = ((unsigned short)buf[0] << 8) | buf[1];
+        *my = ((unsigned short)buf[2] << 8) | buf[3];
+        *mz = ((unsigned short)buf[4] << 8) | buf[5];
+        i2c_write_byte(&i2c_ak8963, 0x11, AK8963_REG_CNTL1);
+        res = true;
+    } else {
+        res = false;
+    }
+
+    return res;
 }
 

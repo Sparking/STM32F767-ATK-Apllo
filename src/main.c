@@ -1,26 +1,12 @@
 #include <string.h>
 #include <main.h>
 
-void lcd_show(void)
-{
-    char str[29];
-    lcd_char_config_t lcd_str;
-
-    lcd_str.font_config.font = &ascii_fonts[1];
-    lcd_str.font_config.mode = FONT_DISPLAY_WITH_BACK_COLOR;
-    lcd_str.font_config.backclr = LCD_BG_COLOR;
-    lcd_str.point_config.Color = 0x0;
-    lcd_str.point_config.Layer = LCD_LAYER_1;
-    lcd_str.point_config.pos.x = 0;
-    lcd_str.point_config.pos.y = 0;
-    lcd_str.point_config.Direction = LCD_DIRECTION_V;
-
-    sprintf(str, "Liu Jiaying");
-    stm32f767_atk_apllo_lcd_puts(&lcd_str, str);
-}
-
 int main(void)
 {
+    struct {
+        short x, y, z;
+    } g, a, m;
+
     system_init(115200);
     rng_init();
     stm32f767_atk_apllo_sdram_init();
@@ -35,9 +21,18 @@ int main(void)
         stm32f767_atk_apllo_led_set(STM32F767_ATK_APLLO_LED_GREEN, STM32F767_ATK_APLLO_LED_OFF);
         stm32f767_atk_apllo_led_set(STM32F767_ATK_APLLO_LED_RED, STM32F767_ATK_APLLO_LED_ON);
         delay_ms(5000);
-        if (rng_ready()) {
+        if (rng_ready())
             printf("random number = %u\r\n", rng_get_random());
-        }
+
+        printf("temperature: %.2fC\r\n", stm32f767_atk_apllo_mpu9250_temperature());
+        if (stm32f767_atk_apllo_mpu9250_gyroscope(&g.x, &g.y, &g.z))
+            printf("gx: %hd, gy: %hd, gz: %hd\r\n", g.x, g.y, g.z);
+
+        if (stm32f767_atk_apllo_mpu9250_accelerometer(&a.x, &a.y, &a.z))
+            printf("ax: %hd, ay: %hd, az: %hd\r\n", a.x, a.y, a.z);
+
+        if (stm32f767_atk_apllo_mpu9250_magnetometer(&m.x, &m.y, &m.z))
+            printf("mx: %hd, my: %hd, mz: %hd\r\n", m.x, m.y, m.z);
     }
 
     return 0;
