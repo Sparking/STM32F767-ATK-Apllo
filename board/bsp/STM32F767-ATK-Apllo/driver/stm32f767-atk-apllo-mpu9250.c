@@ -103,17 +103,39 @@
 #define MPU_ZA_OFFSET_H         0x7D
 #define MPU_ZA_OFFSET_L         0x7E
 
+#define AK8963_REG_WIA          0x00    /* Device ID */
+#define AK8963_REG_INFO         0x01    /* Information */
+#define AK8963_REG_ST1          0x02    /* Status 1 */
+#define AK8963_REG_HXL          0x03
+#define AK8963_REG_HXH          0x04
+#define AK8963_REG_HYL          0x05
+#define AK8963_REG_HYH          0x06
+#define AK8963_REG_HZL          0x07
+#define AK8963_REG_HZH          0x08
+#define AK8963_REG_ST2          0x09    /* Status 2 */
+#define AK8963_REG_CNTL1        0x0A    /* Control 1 */
+#define AK8963_REG_CNTL2        0x0B    /* Control 2 */
+#define AK8963_REG_ASTC         0x0C    /* Self-test */
+#define AK8963_REG_TS1          0x0D    /* Test 1 */
+#define AK8963_REG_TS2          0x0E    /* Test 2 */
+#define AK8963_REG_I2CDIS       0x0F    /* I2C Disable */
+#define AK8963_REG_ASAX         0x10    /* X-axis sensitivity adjustment value */
+#define AK8963_REG_ASAY         0x11    /* Y-axis sensitivity adjustment value */
+#define AK8963_REG_ASAZ         0x12    /* Z-axis sensitivity adjustment value */
+#define AK8963_REG_RSV          0x13    /* Reserved */
+
+#define MPU920_DEVICE_ID        0x71
+#define AK8963_DEVICE_ID        0x48
+
 static i2c_dev_t i2c_mpu9250_acc;
 static i2c_dev_t i2c_mpu9250_mag;
 
-void stm32f767_atk_apllo_mpu9250_init(void)
+void stm32f767_atk_apllo_mpu9250_init(i2c_bus_t *bus)
 {
 	unsigned char value;
-	static i2c_bus_t i2c_bus_mpu9250;
 
-	i2c_bus_init(&i2c_bus_mpu9250, GPIOH, GPIO_PIN_4, GPIOH, GPIO_PIN_5);
-	i2c_init(&i2c_mpu9250_acc, &i2c_bus_mpu9250, 0x68);
-	i2c_init(&i2c_mpu9250_mag, &i2c_bus_mpu9250, 0x0C);
+	i2c_init(&i2c_mpu9250_acc, bus, 0x68);
+	i2c_init(&i2c_mpu9250_mag, bus, 0x0C);
 	i2c_write_byte(&i2c_mpu9250_acc, 0x80, MPU_PWR_MGMT1);
 	delay_ms(100);
 	i2c_write_byte(&i2c_mpu9250_acc, 0x00, MPU_PWR_MGMT1);
@@ -123,6 +145,16 @@ void stm32f767_atk_apllo_mpu9250_init(void)
 	i2c_write_byte(&i2c_mpu9250_acc, 0x00, MPU_FIFO_EN);
 	i2c_write_byte(&i2c_mpu9250_acc, 0x82, MPU_INT_PIN_CFG);
 	value = i2c_read_byte(&i2c_mpu9250_acc, MPU_WHO_AM_I);
-	printf("mpu = %d\n", value);
-	value = i2c_read_byte(&i2c_mpu9250_mag, 00);
+	if (value == MPU920_DEVICE_ID) {
+        printf("Init MPU9250 Success\r\n");
+    } else {
+        printf("Init MPU9250 Failed\r\n");
+    }
+	value = i2c_read_byte(&i2c_mpu9250_mag, AK8963_REG_WIA);
+    if (value == AK8963_DEVICE_ID) {
+        printf("Init AK8963 Success\r\n");
+    } else {
+        printf("Init AK8963 Failed\r\n");
+    }
 }
+

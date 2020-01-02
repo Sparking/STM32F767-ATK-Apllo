@@ -99,6 +99,9 @@ ifeq ($(OS), Windows_NT)
 	@for %%I in ($(subst /,\,$(objs) $(output_bin) $(output_elf) $(output_hex) $(assembling_files) $(MAP_FILE) $(depend_files))) do if exist %%I del /f /q %%I
 else
 	@$(RM) $(objs)
+	@$(RM) $(depend_files)
+	@$(RM) $(MAP_FILE)
+	@$(RM) $(output_hex)
 	@$(RM) $(output_bin)
 	@$(RM) $(output_elf)
 	@$(RM) $(assembling_files)
