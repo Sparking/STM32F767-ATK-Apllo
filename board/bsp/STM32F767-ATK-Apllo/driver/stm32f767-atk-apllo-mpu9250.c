@@ -1,4 +1,4 @@
-#include "sys.h"
+﻿#include "sys.h"
 #include "stm32f767-atk-apllo-mpu9250.h"
 
 /* Registers of MPU9250 */
@@ -129,27 +129,68 @@
 
 static i2c_dev_t i2c_mpu9250;
 static i2c_dev_t i2c_ak8963;
+static short mag_gain[3];
 
-bool stm32f767_atk_apllo_mpu9250_init(i2c_bus_t *__RESTRICT bus)
+bool stm32f767_atk_apllo_mpu9250_init(const i2c_bus_t *restrict bus)
 {
     unsigned char value;
+    unsigned char calibration[3];
 
+    /* 初始化6轴传感器I2C总线 */
     i2c_init(&i2c_mpu9250, bus, 0x68);
+    /* 初始化3轴磁强计I2C总线 */
     i2c_init(&i2c_ak8963, bus, 0x0C);
-    i2c_write_byte(&i2c_mpu9250, 0x80, MPU_PWR_MGMT1);
+    i2c_write_byte(&i2c_mpu9250, 0x80, MPU_PWR_MGMT1);      /* 解除休眠 */
+    delay_ms(100);                                          /* 延时保证复位 */
+    value = i2c_read_byte(&i2c_mpu9250, MPU_WHO_AM_I);      /* 读取MPU9250的设备ID */
+    if (value != MPU920_DEVICE_ID) {
+        return false;
+    }
+
+    /* 复位陀螺仪、加速计和温度计 */
+    i2c_write_byte(&i2c_mpu9250, 0x07, MPU_SIGNAL_PATH_RESET);
     delay_ms(100);
     i2c_write_byte(&i2c_mpu9250, 0x00, MPU_PWR_MGMT1);
-    // TODO:
-    i2c_write_byte(&i2c_mpu9250, 0x00, MPU_INT_ENABLE);
-    i2c_write_byte(&i2c_mpu9250, 0x00, MPU_USER_CTRL);
-    i2c_write_byte(&i2c_mpu9250, 0x00, MPU_FIFO_EN);
-    i2c_write_byte(&i2c_mpu9250, 0x82, MPU_INT_PIN_CFG);
-    value = i2c_read_byte(&i2c_mpu9250, MPU_WHO_AM_I);
-    if (value != MPU920_DEVICE_ID)
-        return false;
+    delay_ms(100);
+    i2c_write_byte(&i2c_mpu9250, 0x01, MPU_PWR_MGMT1);      /* 选择PLL时钟源 */
+    delay_ms(15);
+    i2c_write_byte(&i2c_mpu9250, 0x18, MPU_GYRO_CONFIG);    /* 陀螺仪量程+-2000dps */
+    delay_ms(15);
+    i2c_write_byte(&i2c_mpu9250, 0x18, MPU_ACCEL_CONFIG);   /* 加速计量程+-16g */
+    delay_ms(15);
+    i2c_write_byte(&i2c_mpu9250, 0x00, MPU_CONFIG);         /* 采样频率8kHz,带宽250Hz */
+    delay_ms(15);
+    i2c_write_byte(&i2c_mpu9250, 0x00, MPU_SMPLRT_DIV);     /* 不起作用 */
+    delay_ms(100);
+    i2c_write_byte(&i2c_mpu9250, 0x12, MPU_INT_PIN_CFG);    /* BYPASS, INT_ANYRD_2CLEAR */
+    delay_ms(15);
+
+#if 1
+    i2c_write_byte(&i2c_mpu9250, 0x01, MPU_INT_ENABLE);
+    delay_ms(15);
+#endif
 
     value = i2c_read_byte(&i2c_ak8963, AK8963_REG_WIA);
-    return value == AK8963_DEVICE_ID;
+    if (value != AK8963_DEVICE_ID) {
+        return false;
+    }
+
+    i2c_write_byte(&i2c_ak8963, 0x00, AK8963_REG_CNTL1);
+    delay_ms(20);
+    i2c_write_byte(&i2c_ak8963, 0x0F, AK8963_REG_CNTL1);
+    delay_ms(10);
+    i2c_read_bytes(&i2c_ak8963, calibration, 3, AK8963_REG_ASAX);
+    delay_ms(10);
+    mag_gain[0] = calibration[0] + 128;
+    mag_gain[1] = calibration[1] + 128;
+    mag_gain[2] = calibration[2] + 128;
+    i2c_write_byte(&i2c_ak8963, 0x00, AK8963_REG_CNTL1);
+    delay_ms(10);
+    (void)i2c_read_byte(&i2c_ak8963, AK8963_REG_ST1);
+    (void)i2c_read_byte(&i2c_ak8963, AK8963_REG_ST2);
+    i2c_write_byte(&i2c_ak8963, 0x11, AK8963_REG_CNTL1);
+
+    return true;
 }
 
 float stm32f767_atk_apllo_mpu9250_temperature(void)
@@ -158,62 +199,84 @@ float stm32f767_atk_apllo_mpu9250_temperature(void)
     short raw;
     unsigned char buf[2];
 
+    temp = 0.0f;
     if (i2c_read_bytes(&i2c_mpu9250, buf, 2, MPU_TEMP_OUT_H) == I2C_STATUS_OK) {
         raw = ((unsigned short)buf[0] << 8) | buf[1];
-        temp = 21 + ((double)raw) / 333.87;
-    } else {
-        temp = 0.0f;
+        temp = 21.0f + ((double)raw) / 333.87f;
     }
 
     return temp;
 }
 
-bool stm32f767_atk_apllo_mpu9250_gyroscope(short *__RESTRICT gx, short *__RESTRICT gy, short *__RESTRICT gz)
+static inline float mpu9250_raw_gyro_to_std(const short value)
 {
+    return degrees2rad((float)value / 16.4f);
+}
+
+static inline float mpu9250_raw_acc_to_std(const short value)
+{
+    return (float)value / 2048.0f;
+}
+
+static inline float mpu9250_raw_mag_to_std(const short value, const short i)
+{
+    return (float)(value * mag_gain[i]) / (600000.0f * 256.0f);
+}
+
+bool stm32f767_atk_apllo_mpu9250_gyroscope(fvector3d_t *restrict gyro)
+{
+    short g;
     unsigned char buf[6], res;
 
+    res = false;
     if (i2c_read_bytes(&i2c_mpu9250, buf, 6, MPU_GYRO_XOUT_H) == I2C_STATUS_OK) {
-        *gx = ((unsigned short)buf[0] << 8) | buf[1];
-        *gy = ((unsigned short)buf[2] << 8) | buf[3];
-        *gz = ((unsigned short)buf[4] << 8) | buf[5];
+        g = ((unsigned short)buf[0] << 8) | buf[1];
+        gyro->x = mpu9250_raw_gyro_to_std(g);
+        g = ((unsigned short)buf[2] << 8) | buf[3];
+        gyro->y = mpu9250_raw_gyro_to_std(g);
+        g = ((unsigned short)buf[4] << 8) | buf[5];
+        gyro->z = mpu9250_raw_gyro_to_std(g);
         res = true;
-    } else {
-        res = false;
     }
 
     return res;
 }
 
-bool stm32f767_atk_apllo_mpu9250_accelerometer(short *__RESTRICT ax, short *__RESTRICT ay, short *__RESTRICT az)
+bool stm32f767_atk_apllo_mpu9250_accelerometer(fvector3d_t *restrict acc)
 {
+    short a;
     unsigned char buf[6], res;
 
+    res = false;
     if (i2c_read_bytes(&i2c_mpu9250, buf, 6, MPU_ACCEL_XOUT_H) == I2C_STATUS_OK) {
-        *ax = ((unsigned short)buf[0] << 8) | buf[1];
-        *ay = ((unsigned short)buf[2] << 8) | buf[3];
-        *az = ((unsigned short)buf[4] << 8) | buf[5];
+        a = ((unsigned short)buf[0] << 8) | buf[1];
+        acc->x = mpu9250_raw_acc_to_std(a);
+        a = ((unsigned short)buf[2] << 8) | buf[3];
+        acc->y = mpu9250_raw_acc_to_std(a);
+        a = ((unsigned short)buf[4] << 8) | buf[5];
+        acc->z = mpu9250_raw_acc_to_std(a);
         res = true;
-    } else {
-        res = false;
     }
 
     return res;
 }
 
-bool stm32f767_atk_apllo_mpu9250_magnetometer(short *__RESTRICT mx, short *__RESTRICT my, short *__RESTRICT mz)
+bool stm32f767_atk_apllo_mpu9250_magnetometer(fvector3d_t *restrict mag)
 {
+    short m;
     unsigned char buf[6], res;
 
+    res = false;
     if (i2c_read_bytes(&i2c_ak8963, buf, 6, AK8963_REG_HXL) == I2C_STATUS_OK) {
-        *mx = ((unsigned short)buf[0] << 8) | buf[1];
-        *my = ((unsigned short)buf[2] << 8) | buf[3];
-        *mz = ((unsigned short)buf[4] << 8) | buf[5];
+        m = ((unsigned short)buf[0] << 8) | buf[1];
+        mag->x = mpu9250_raw_mag_to_std(m, 0);
+        m = ((unsigned short)buf[2] << 8) | buf[3];
+        mag->y = mpu9250_raw_mag_to_std(m, 1);
+        m = ((unsigned short)buf[4] << 8) | buf[5];
+        mag->z = mpu9250_raw_mag_to_std(m, 2);
         i2c_write_byte(&i2c_ak8963, 0x11, AK8963_REG_CNTL1);
         res = true;
-    } else {
-        res = false;
     }
 
     return res;
 }
-

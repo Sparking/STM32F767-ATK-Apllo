@@ -1,4 +1,6 @@
+#include <rng.h>
 #include <sys.h>
+#include <timer.h>
 
 UART_HandleTypeDef huart1 = {0};
 
@@ -112,7 +114,7 @@ static void uart1_init(const unsigned int baudrate)
     huart1.Init.Mode = UART_MODE_TX_RX;
     huart1.gState = HAL_UART_STATE_RESET;
     HAL_UART_Init(&huart1);
-    __HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);
+    __HAL_UART_DISABLE_IT(&huart1, UART_IT_RXNE);
 }
 
 void system_init(const unsigned int baudrate)
@@ -143,9 +145,9 @@ void system_init(const unsigned int baudrate)
     }
     /** Activate the Over-Drive mode 
      */
-    //if (HAL_PWREx_EnableOverDrive() != HAL_OK) {
-    //    Error_Handler();
-    //}
+    if (HAL_PWREx_EnableOverDrive() != HAL_OK) {
+        Error_Handler();
+    }
     /** Initializes the CPU, AHB and APB busses clocks 
      */
     RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
@@ -166,5 +168,7 @@ void system_init(const unsigned int baudrate)
     }
 
     Cache_Enable();
+    rng_init();
     uart1_init(baudrate);
+    timer_init(10000 - 1, 10800 - 1);
 }

@@ -21,7 +21,7 @@ __STATIC_FORCEINLINE unsigned char at24c02_write_byte(const unsigned char data,
  * @param addr 存储地址
  * @returns 写入成功返回I2C_STATUS_OK, 否则返回I2C_STATUS_FAILED
  */
-__STATIC_FORCEINLINE unsigned char at24c02_write_bytes(const unsigned char *__RESTRICT ptr,
+__STATIC_FORCEINLINE unsigned char at24c02_write_bytes(const unsigned char *restrict ptr,
         const unsigned char size, const unsigned char addr)
 {
     return i2c_write_bytes(&i2c_at24c02, ptr, size, addr);
@@ -44,7 +44,7 @@ __STATIC_FORCEINLINE unsigned char at24c02_read_byte(const unsigned char addr)
  * @param addr 存储地址
  * @returns 读取成功返回I2C_STATUS_OK, 否则返回I2C_STATUS_FAILED
  */
-__STATIC_FORCEINLINE unsigned char at24c02_read_bytes(unsigned char *__RESTRICT ptr,
+__STATIC_FORCEINLINE unsigned char at24c02_read_bytes(unsigned char *restrict ptr,
         const unsigned char size, const unsigned char addr)
 {
     return i2c_read_bytes(&i2c_at24c02, ptr, size, addr);

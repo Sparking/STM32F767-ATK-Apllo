@@ -1,14 +1,18 @@
-#pragma once
+﻿#ifndef __STM32F767_ATK_APLLO_MPU9250_H__
+#define __STM32F767_ATK_APLLO_MPU9250_H__
 
 #include <stdbool.h>
 #include "iic.h"
+#include "common/maths.h"
 
-extern bool stm32f767_atk_apllo_mpu9250_init(i2c_bus_t *__RESTRICT);
+extern bool stm32f767_atk_apllo_mpu9250_init(const i2c_bus_t *restrict bus);
 
 extern float stm32f767_atk_apllo_mpu9250_temperature(void);
 
-extern bool stm32f767_atk_apllo_mpu9250_gyroscope(short *__RESTRICT gx, short *__RESTRICT gy, short *__RESTRICT gz);
+extern bool stm32f767_atk_apllo_mpu9250_gyroscope(fvector3d_t *restrict gyro);
 
-extern bool stm32f767_atk_apllo_mpu9250_accelerometer(short *__RESTRICT ax, short *__RESTRICT ay, short *__RESTRICT az);
+extern bool stm32f767_atk_apllo_mpu9250_accelerometer(fvector3d_t *restrict acc);
 
-extern bool stm32f767_atk_apllo_mpu9250_magnetometer(short *__RESTRICT mx, short *__RESTRICT my, short *__RESTRICT mz);
+extern bool stm32f767_atk_apllo_mpu9250_magnetometer(fvector3d_t *restrict mag);
+
+#endif /* __STM32F767_ATK_APLLO_MPU9250_H__ */

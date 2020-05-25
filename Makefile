@@ -23,7 +23,7 @@ CFLAGS += --specs=nano.specs --specs=nosys.specs
 CPPFLAGS := -Wall -Werror -std=gnu99
 
 LDFLAGS := -Wl,-gc-section
-LIBS :=
+LIBS := -lm
 
 ifeq ("$(BOARD)", "STM32F767-ATK-Apllo")
 CPPFLAGS += -DSTM32F7xx -DSTM32F767xx -D__FPU_USED=1U -DUNALIGNED_SUPPORT_DISABLE

@@ -1,0 +1,28 @@
+{
+    "configurations": [
+        {
+            "name": "STM32F767IGT6",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "STM32F7xx",
+                "STM32F767xx",
+                "__FPU_USED=1U",
+                "UNALIGNED_SUPPORT_DISABLE",
+                "DARM_MATH_CM7",
+                "ARM_MATH_MATRIX_CHECK",
+                "ARM_MATH_ROUNDING",
+                "ARM_MATH_LOOPUNROLL",
+                "USE_HAL_DRIVER"
+            ],
+            "cStandard": "c99",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-x64"
+        }
+    ],
+    "version": 4
+}

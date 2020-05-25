@@ -8,7 +8,7 @@
 
 #define LCD_BG_COLOR  0xFCC3U
 
-struct __ltdc_devicetypedef{
+struct __ltdc_devicetypedef {
         uint8_t  hbp;      /* 水平后沿宽度 */
         uint8_t  vbp;      /* 垂直后沿宽度 */
         uint8_t  hfp;      /* 水平前沿宽度 */
