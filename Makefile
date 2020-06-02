@@ -15,7 +15,7 @@ CFLAGS  += -g -gdwarf-2
 CFLAGS  += -mfpu=fpv5-d16 -mfloat-abi=hard
 ASFLAGS := $(CFLAGS)
 
-CFLAGS += -O0
+CFLAGS += -Os
 CFLAGS += -u _printf_float
 CFLAGS += -ffunction-sections -fdata-sections -ffp-contract=off
 CFLAGS += -fno-strict-aliasing -fmessage-length=0

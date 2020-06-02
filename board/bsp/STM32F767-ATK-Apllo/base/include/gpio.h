@@ -11,16 +11,19 @@ typedef struct {
 
 __STATIC_FORCEINLINE void gpio_clk_enable(GPIO_TypeDef *restrict GPIO)
 {
+    __DMB();
     RCC->AHB1ENR |= 1 << (((uint32_t)GPIO - GPIOA_BASE) >> 10);
 }
 
 __STATIC_FORCEINLINE void gpio_set_pin(GPIO_TypeDef *restrict GPIO, const uint16_t pin)
 {
+    __DMB();
     GPIO->BSRR = (uint32_t)pin;
 }
 
 __STATIC_FORCEINLINE void gpio_reset_pin(GPIO_TypeDef *restrict GPIO, const uint16_t pin)
 {
+    __DMB();
     GPIO->BSRR = (uint32_t)pin << 16;
 }
 

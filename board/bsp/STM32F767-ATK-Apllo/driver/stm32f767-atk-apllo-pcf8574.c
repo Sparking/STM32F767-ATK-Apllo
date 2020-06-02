@@ -13,16 +13,16 @@ void stm32f767_atk_apllo_pcf8574_init(void)
 {
     GPIO_InitTypeDef gpio;
 
+    i2c_bus_init(&pcf8574_bus, GPIOH, GPIO_PIN_4, GPIOH, GPIO_PIN_5);
+    i2c_init(&pcf8574, &pcf8574_bus, PCF8574_ADDR);
     gpio.Pin = GPIO_PIN_12;
     gpio.Mode = GPIO_MODE_IT_FALLING;
     gpio.Pull = GPIO_PULLUP;
     gpio_clk_enable(GPIOB);
     HAL_GPIO_Init(GPIOB, &gpio);
     HAL_NVIC_SetPriority(EXTI15_10_IRQn, 1, 3);
-    HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
-    i2c_bus_init(&pcf8574_bus, GPIOH, GPIO_PIN_4, GPIOH, GPIO_PIN_5);
-    i2c_init(&pcf8574, &pcf8574_bus, PCF8574_ADDR);
     stm32f767_atk_apllo_pcf8574_read();
+    HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
 unsigned char stm32f767_atk_apllo_pcf8574_read(void)

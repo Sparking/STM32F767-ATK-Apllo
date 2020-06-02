@@ -16,12 +16,11 @@ struct point {
     int y;
 };
 
-struct fvector3d {
+typedef struct {
     float x;
     float y;
     float z;
-};
-typedef struct fvector3d fvector3d_t;
+} fvector3d_t;
 
 static inline float degrees2rad(const float degrees)
 {
@@ -32,6 +31,12 @@ static inline float rad2degrees(const float rad)
 {
     return rad * (180.0f / M_PIf);
 }
+
+extern float fvector3d_size(const fvector3d_t *restrict v);
+
+extern fvector3d_t *fvector3d_scale(fvector3d_t *restrict v, const float t);
+
+extern fvector3d_t *fvector3d_normalize(fvector3d_t *restrict v);
 
 /**
  * @brief bits_count 计算出一个整数中1的位数
@@ -50,7 +55,7 @@ extern int gcd(const int a, const int b);
  * @param rows 增广矩阵的行数
  * @return 方程有解返回，如果没有解，返回-1
  */
-extern int gaussian_elimination(float *matrix, float *res, const unsigned int rows);
+extern int gaussian_elimination(float *restrict matrix, float *restrict res, const unsigned int rows);
 
 #ifdef __cplusplus
 }

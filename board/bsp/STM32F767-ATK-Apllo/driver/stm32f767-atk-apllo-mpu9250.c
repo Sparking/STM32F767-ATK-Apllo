@@ -208,21 +208,6 @@ float stm32f767_atk_apllo_mpu9250_temperature(void)
     return temp;
 }
 
-static inline float mpu9250_raw_gyro_to_std(const short value)
-{
-    return degrees2rad((float)value / 16.4f);
-}
-
-static inline float mpu9250_raw_acc_to_std(const short value)
-{
-    return (float)value / 2048.0f;
-}
-
-static inline float mpu9250_raw_mag_to_std(const short value, const short i)
-{
-    return (float)(value * mag_gain[i]) / (600000.0f * 256.0f);
-}
-
 bool stm32f767_atk_apllo_mpu9250_gyroscope(fvector3d_t *restrict gyro)
 {
     short g;
@@ -231,11 +216,12 @@ bool stm32f767_atk_apllo_mpu9250_gyroscope(fvector3d_t *restrict gyro)
     res = false;
     if (i2c_read_bytes(&i2c_mpu9250, buf, 6, MPU_GYRO_XOUT_H) == I2C_STATUS_OK) {
         g = ((unsigned short)buf[0] << 8) | buf[1];
-        gyro->x = mpu9250_raw_gyro_to_std(g);
+        gyro->x = (float)g;
         g = ((unsigned short)buf[2] << 8) | buf[3];
-        gyro->y = mpu9250_raw_gyro_to_std(g);
+        gyro->y = (float)g;
         g = ((unsigned short)buf[4] << 8) | buf[5];
-        gyro->z = mpu9250_raw_gyro_to_std(g);
+        gyro->z = (float)g;
+        fvector3d_scale(gyro, 1.0f / 16.4f);
         res = true;
     }
 
@@ -250,11 +236,12 @@ bool stm32f767_atk_apllo_mpu9250_accelerometer(fvector3d_t *restrict acc)
     res = false;
     if (i2c_read_bytes(&i2c_mpu9250, buf, 6, MPU_ACCEL_XOUT_H) == I2C_STATUS_OK) {
         a = ((unsigned short)buf[0] << 8) | buf[1];
-        acc->x = mpu9250_raw_acc_to_std(a);
+        acc->x = (float)a;
         a = ((unsigned short)buf[2] << 8) | buf[3];
-        acc->y = mpu9250_raw_acc_to_std(a);
+        acc->y = (float)a;
         a = ((unsigned short)buf[4] << 8) | buf[5];
-        acc->z = mpu9250_raw_acc_to_std(a);
+        acc->z = (float)a;
+        fvector3d_scale(acc, 1.0f / 2048.0f);
         res = true;
     }
 
@@ -269,11 +256,12 @@ bool stm32f767_atk_apllo_mpu9250_magnetometer(fvector3d_t *restrict mag)
     res = false;
     if (i2c_read_bytes(&i2c_ak8963, buf, 6, AK8963_REG_HXL) == I2C_STATUS_OK) {
         m = ((unsigned short)buf[0] << 8) | buf[1];
-        mag->x = mpu9250_raw_mag_to_std(m, 0);
+        mag->x = (float)(m * mag_gain[0]);
         m = ((unsigned short)buf[2] << 8) | buf[3];
-        mag->y = mpu9250_raw_mag_to_std(m, 1);
+        mag->y = (float)(m * mag_gain[1]);
         m = ((unsigned short)buf[4] << 8) | buf[5];
-        mag->z = mpu9250_raw_mag_to_std(m, 2);
+        mag->z = (float)(m * mag_gain[2]);
+        fvector3d_scale(mag, 1.0f / (600000.0f * 256.0f));
         i2c_write_byte(&i2c_ak8963, 0x11, AK8963_REG_CNTL1);
         res = true;
     }

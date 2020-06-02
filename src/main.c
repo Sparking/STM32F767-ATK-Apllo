@@ -6,6 +6,7 @@ void stm32f767_timer_handler(void)
     static unsigned char status = STM32F767_ATK_APLLO_LED_OFF;
 
     stm32f767_atk_apllo_led_set(STM32F767_ATK_APLLO_LED_GREEN, status);
+    stm32f767_atk_apllo_led_set(STM32F767_ATK_APLLO_LED_RED, !status);
     status = (status == STM32F767_ATK_APLLO_LED_OFF) ? STM32F767_ATK_APLLO_LED_ON : STM32F767_ATK_APLLO_LED_OFF;
 }
 
@@ -66,24 +67,22 @@ void GPIO_EXTI12_Handler(void)
 
     data = stm32f767_atk_apllo_pcf8574_read();
     if ((data & (1 << 6))) {
-        //printf("temperature: %.2fC\r\n", stm32f767_atk_apllo_mpu9250_temperature());
+        printf("temperature: %.2fC\r\n", stm32f767_atk_apllo_mpu9250_temperature());
         stm32f767_atk_apllo_mpu9250_gyroscope(&g);
-        //printf("gx: %f, gy: %f, gz: %f\r\n", g.x, g.y, g.z);
+        printf("gx: %f, gy: %f, gz: %f\r\n", g.x, g.y, g.z);
         stm32f767_atk_apllo_mpu9250_accelerometer(&a);
-        //printf("ax: %f, ay: %f, az: %f\r\n", a.x, a.y, a.z);
+        printf("ax: %f, ay: %f, az: %f\r\n", a.x, a.y, a.z);
         stm32f767_atk_apllo_mpu9250_magnetometer(&m);
-        //printf("mx: %f, my: %f, mz: %f\r\n", m.x, m.y, m.z);
+        printf("mx: %f, my: %f, mz: %f\r\n", m.x, m.y, m.z);
         quaternion_update(&q, 0.001, g.x, g.y, g.z);
         quaternion_to_euler(&angle, &q);
-        ANO_DT_Send_Status(angle.pitch, angle.roll, angle.yaw, 0, 0, 1);
-        //printf("pitch: %f, roll: %f, yaw: %f\r\n", angle.pitch, angle.roll, angle.yaw);
+        /* ANO_DT_Send_Status(angle.pitch, angle.roll, angle.yaw, 0, 0, 1); */
+        printf("pitch: %f, roll: %f, yaw: %f\r\n", angle.pitch, angle.roll, angle.yaw);
     }
 }
 
 int main(void)
 {
-    int i;
-
     system_init(115200);
     stm32f767_atk_apllo_sdram_init();
     stm32f767_atk_apllo_lcd_init();
@@ -91,18 +90,8 @@ int main(void)
     stm32f767_atk_apllo_led_init();
     stm32f767_atk_apllo_iic_init();
 
-    for (i = 0; i < 5; ++i) {
-        stm32f767_atk_apllo_led_set(STM32F767_ATK_APLLO_LED_GREEN, STM32F767_ATK_APLLO_LED_ON);
-        stm32f767_atk_apllo_led_set(STM32F767_ATK_APLLO_LED_RED, STM32F767_ATK_APLLO_LED_ON);
-        delay_ms(1000);
-        stm32f767_atk_apllo_led_set(STM32F767_ATK_APLLO_LED_RED, STM32F767_ATK_APLLO_LED_OFF);
-        stm32f767_atk_apllo_led_set(STM32F767_ATK_APLLO_LED_GREEN, STM32F767_ATK_APLLO_LED_OFF);
-        delay_ms(1000);
-    }
-
-    stm32f767_atk_apllo_led_set(STM32F767_ATK_APLLO_LED_GREEN, STM32F767_ATK_APLLO_LED_ON);
     while (1) {
-        delay_ms(1);
+        delay_ms(1000);
     }
 
     return 0;

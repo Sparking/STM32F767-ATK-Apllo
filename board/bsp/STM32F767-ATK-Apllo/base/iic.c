@@ -4,7 +4,7 @@
 #define I2C_SIGNAL_NOACK    GPIO_PIN_SET
 #define I2C_SIGNAL_ACK      GPIO_PIN_RESET
 
-#if 0
+#if 1
 #define I2C_MUTEX_LOCK(dev) \
     xSemaphoreTake((dev)->bus->mutex, portMAX_DELAY)
 #define I2C_MUTEX_UNLOCK(dev) \
@@ -39,12 +39,16 @@ void i2c_bus_init(i2c_bus_t *restrict bus, GPIO_TypeDef *scl_gpio, const uint16_
     GPIO_Initure.Speed= GPIO_SPEED_FAST;
     GPIO_Initure.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_Initure.Alternate = 0;
+
     gpio_clk_enable(scl_gpio);
     gpio_clk_enable(sda_gpio);
+
     GPIO_Initure.Pin  = scl_pin;
     HAL_GPIO_Init(scl_gpio, &GPIO_Initure);
+
     GPIO_Initure.Pin = sda_pin;
     HAL_GPIO_Init(sda_gpio, &GPIO_Initure);
+
     gpio_set_pin(scl_gpio, scl_pin);
     gpio_set_pin(sda_gpio, sda_pin);
 
@@ -79,8 +83,9 @@ void i2c_stop(const i2c_dev_t *restrict i2c_dev)
 
 unsigned char i2c_wait_ack(const i2c_dev_t *restrict i2c_dev)
 {
-    unsigned char ucErrTime = 0;
+    unsigned char ucErrTime;
 
+    ucErrTime = 0;
     I2C_SET_SDA(i2c_dev);
     I2C_SDA_MODE_IN(i2c_dev);
     delay_us(2);
@@ -111,9 +116,11 @@ void i2c_send_ack(const i2c_dev_t *restrict i2c_dev, const GPIO_PinState ack)
 
 void i2c_base_send_byte(const i2c_dev_t *restrict i2c_dev, unsigned char data)
 {
+    unsigned char t;
+
     I2C_SDA_MODE_OUT(i2c_dev);
     I2C_RESET_SCL(i2c_dev);
-    for(unsigned char t = 0; t < 8; t++) {
+    for(t = 0; t < 8; t++) {
         I2C_WRITE_SDA(i2c_dev, data >> 7 ? GPIO_PIN_SET : GPIO_PIN_RESET);
         data <<= 1;
         I2C_SET_SCL(i2c_dev);
@@ -125,10 +132,10 @@ void i2c_base_send_byte(const i2c_dev_t *restrict i2c_dev, unsigned char data)
 
 unsigned char i2c_base_read_byte(const i2c_dev_t *restrict i2c_dev, const GPIO_PinState ack)
 {
-    unsigned char i, receive = 0;
+    unsigned char i, receive;
 
     I2C_SDA_MODE_IN(i2c_dev);
-    for(i = 0; i < 8; i++) {
+    for(receive = 0, i = 0; i < 8; i++) {
         I2C_RESET_SCL(i2c_dev);
         delay_us(2);
         I2C_SET_SCL(i2c_dev);
@@ -154,15 +161,18 @@ unsigned char i2c_write_byte(const i2c_dev_t *restrict i2c_dev, const unsigned c
         ret = I2C_STATUS_FAILED;
         goto stop_i2c_write_byte;
     }
+
     i2c_base_send_byte(i2c_dev, reg);
     i2c_wait_ack(i2c_dev);
     i2c_base_send_byte(i2c_dev, data);
-    if (i2c_wait_ack(i2c_dev))
+    if (i2c_wait_ack(i2c_dev)) {
         ret = I2C_STATUS_FAILED;
+    }
 
 stop_i2c_write_byte:
     i2c_stop(i2c_dev);
     I2C_MUTEX_UNLOCK(i2c_dev);
+
     return ret;
 }
 
@@ -200,6 +210,7 @@ unsigned char i2c_read_bytes(const i2c_dev_t *restrict i2c_dev, unsigned char *r
        ret = I2C_STATUS_FAILED;
        goto stop_i2c_read_bytes;
     }
+
     i2c_base_send_byte(i2c_dev, reg);
     i2c_wait_ack(i2c_dev);
     i2c_start(i2c_dev);
@@ -207,14 +218,17 @@ unsigned char i2c_read_bytes(const i2c_dev_t *restrict i2c_dev, unsigned char *r
     i2c_wait_ack(i2c_dev);
     ack_signal = I2C_SIGNAL_ACK;
     for (i = 0; i < len; ++i) {
-        if (i == len - 1)
+        if (i == len - 1) {
             ack_signal = I2C_SIGNAL_NOACK;
+        }
+
         buf[i] = i2c_base_read_byte(i2c_dev, ack_signal);
     }
 
 stop_i2c_read_bytes:
     i2c_stop(i2c_dev);
     I2C_MUTEX_UNLOCK(i2c_dev);
+
     return ret;
 }
 
@@ -231,6 +245,7 @@ unsigned char i2c_write_bytes(const i2c_dev_t *restrict i2c_dev, const unsigned 
         ret = I2C_STATUS_FAILED;
         goto stop_i2c_write_bytes;
     }
+
     i2c_base_send_byte(i2c_dev, reg);
     i2c_wait_ack(i2c_dev);
     for (i = 0; i < len; ++i) {
@@ -244,6 +259,7 @@ unsigned char i2c_write_bytes(const i2c_dev_t *restrict i2c_dev, const unsigned 
 stop_i2c_write_bytes:
     i2c_stop(i2c_dev);
     I2C_MUTEX_UNLOCK(i2c_dev);
+
     return ret;
 }
 
@@ -268,6 +284,7 @@ unsigned char i2c_write_bytes_direct(const i2c_dev_t *restrict i2c_dev, const un
 i2c_read_bytes_direct_exit:
     i2c_stop(i2c_dev);
     I2C_MUTEX_UNLOCK(i2c_dev);
+
     return ret;
 }
 
@@ -290,6 +307,7 @@ unsigned char i2c_read_bytes_direct(const i2c_dev_t *restrict i2c_dev, unsigned 
         ret = I2C_STATUS_FAILED;
         goto i2c_read_bytes_direct_exit;
     }
+
     ack_signal = I2C_SIGNAL_ACK;
     for (i = 0; i < len; i++) {
         if (i == len - 1) {
@@ -302,6 +320,7 @@ unsigned char i2c_read_bytes_direct(const i2c_dev_t *restrict i2c_dev, unsigned 
 i2c_read_bytes_direct_exit:
     i2c_stop(i2c_dev);
     I2C_MUTEX_UNLOCK(i2c_dev);
+
     return ret;
 }
 
@@ -309,7 +328,9 @@ unsigned char i2c_read_byte_direct(const i2c_dev_t *restrict i2c_dev)
 {
     unsigned char data;
 
+    data = 0xFF;
     i2c_read_bytes_direct(i2c_dev, &data, 1);
 
     return data;
 }
+
