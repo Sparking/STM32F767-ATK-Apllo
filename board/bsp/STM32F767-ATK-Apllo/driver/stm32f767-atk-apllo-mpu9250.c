@@ -129,7 +129,12 @@
 
 static i2c_dev_t i2c_mpu9250;
 static i2c_dev_t i2c_ak8963;
-static short mag_gain[3];
+const static fvector3d_t mpu9250_gyro_bias = {
+    .x = 8.44f,
+    .y = 1.3f,
+    .z = -6.78f
+};
+static hvector3d_t mag_gain;
 
 bool stm32f767_atk_apllo_mpu9250_init(const i2c_bus_t *restrict bus)
 {
@@ -181,9 +186,9 @@ bool stm32f767_atk_apllo_mpu9250_init(const i2c_bus_t *restrict bus)
     delay_ms(10);
     i2c_read_bytes(&i2c_ak8963, calibration, 3, AK8963_REG_ASAX);
     delay_ms(10);
-    mag_gain[0] = calibration[0] + 128;
-    mag_gain[1] = calibration[1] + 128;
-    mag_gain[2] = calibration[2] + 128;
+    mag_gain.x = (char)(calibration[0] + 128);
+    mag_gain.y = (char)(calibration[1] + 128);
+    mag_gain.z = (char)(calibration[2] + 128);
     i2c_write_byte(&i2c_ak8963, 0x00, AK8963_REG_CNTL1);
     delay_ms(10);
     (void)i2c_read_byte(&i2c_ak8963, AK8963_REG_ST1);
@@ -208,60 +213,58 @@ float stm32f767_atk_apllo_mpu9250_temperature(void)
     return temp;
 }
 
-bool stm32f767_atk_apllo_mpu9250_gyroscope(fvector3d_t *restrict gyro)
+bool stm32f767_atk_apllo_mpu9250_gyroscope(fvector3d_t *restrict gyro, hvector3d_t *restrict raw)
 {
-    short g;
     unsigned char buf[6], res;
 
     res = false;
     if (i2c_read_bytes(&i2c_mpu9250, buf, 6, MPU_GYRO_XOUT_H) == I2C_STATUS_OK) {
-        g = ((unsigned short)buf[0] << 8) | buf[1];
-        gyro->x = (float)g;
-        g = ((unsigned short)buf[2] << 8) | buf[3];
-        gyro->y = (float)g;
-        g = ((unsigned short)buf[4] << 8) | buf[5];
-        gyro->z = (float)g;
-        fvector3d_scale(gyro, 1.0f / 16.4f);
+        raw->x = ((unsigned short)buf[0] << 8) | buf[1];
+        raw->y = ((unsigned short)buf[2] << 8) | buf[3];
+        raw->z = ((unsigned short)buf[4] << 8) | buf[5];
+        gyro->x = (float)raw->x;
+        gyro->y = (float)raw->y;
+        gyro->z = (float)raw->z;
+        fvector3d_add(gyro, gyro, &mpu9250_gyro_bias);
+        fvector3d_scale(gyro, gyro, 1.0f / 16.4f);
         res = true;
     }
 
     return res;
 }
 
-bool stm32f767_atk_apllo_mpu9250_accelerometer(fvector3d_t *restrict acc)
+bool stm32f767_atk_apllo_mpu9250_accelerometer(fvector3d_t *restrict acc, hvector3d_t *restrict raw)
 {
-    short a;
     unsigned char buf[6], res;
 
     res = false;
     if (i2c_read_bytes(&i2c_mpu9250, buf, 6, MPU_ACCEL_XOUT_H) == I2C_STATUS_OK) {
-        a = ((unsigned short)buf[0] << 8) | buf[1];
-        acc->x = (float)a;
-        a = ((unsigned short)buf[2] << 8) | buf[3];
-        acc->y = (float)a;
-        a = ((unsigned short)buf[4] << 8) | buf[5];
-        acc->z = (float)a;
-        fvector3d_scale(acc, 1.0f / 2048.0f);
+        raw->x = ((unsigned short)buf[0] << 8) | buf[1];
+        raw->y = ((unsigned short)buf[2] << 8) | buf[3];
+        raw->z = ((unsigned short)buf[4] << 8) | buf[5];
+        acc->x = (float)raw->x;
+        acc->y = (float)raw->y;
+        acc->z = (float)raw->z;
+        fvector3d_scale(acc, acc, 1.0f / 2048.0f);
         res = true;
     }
 
     return res;
 }
 
-bool stm32f767_atk_apllo_mpu9250_magnetometer(fvector3d_t *restrict mag)
+bool stm32f767_atk_apllo_mpu9250_magnetometer(fvector3d_t *restrict mag, hvector3d_t *restrict raw)
 {
-    short m;
     unsigned char buf[6], res;
 
     res = false;
     if (i2c_read_bytes(&i2c_ak8963, buf, 6, AK8963_REG_HXL) == I2C_STATUS_OK) {
-        m = ((unsigned short)buf[0] << 8) | buf[1];
-        mag->x = (float)(m * mag_gain[0]);
-        m = ((unsigned short)buf[2] << 8) | buf[3];
-        mag->y = (float)(m * mag_gain[1]);
-        m = ((unsigned short)buf[4] << 8) | buf[5];
-        mag->z = (float)(m * mag_gain[2]);
-        fvector3d_scale(mag, 1.0f / (600000.0f * 256.0f));
+        raw->x = ((unsigned short)buf[0] << 8) | buf[1];
+        raw->y = ((unsigned short)buf[2] << 8) | buf[3];
+        raw->z = ((unsigned short)buf[4] << 8) | buf[5];
+        mag->x = (float)(raw->x * mag_gain.x);
+        mag->y = (float)(raw->y * mag_gain.y);
+        mag->z = (float)(raw->z * mag_gain.z);
+        fvector3d_scale(mag, mag, 1.0f / (600000.0f * 256.0f));
         i2c_write_byte(&i2c_ak8963, 0x11, AK8963_REG_CNTL1);
         res = true;
     }

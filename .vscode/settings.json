@@ -1,6 +1,11 @@
 {
     "files.associations": {
         "sys.h": "c",
-        "main.h": "c"
-    }
+        "main.h": "c",
+        "maths.h": "c",
+        "type_traits": "c"
+    },
+    "files.autoGuessEncoding": true,
+    "files.eol": "\n",
+    "files.insertFinalNewline": true
 }

@@ -3,7 +3,7 @@
 
 #include <string.h>
 #include "stm32f7xx_hal.h"
-#include "common/maths.h"
+#include "maths.h"
 #include "font.h"
 
 #define LCD_BG_COLOR  0xFCC3U

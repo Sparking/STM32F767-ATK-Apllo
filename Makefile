@@ -29,6 +29,7 @@ ifeq ("$(BOARD)", "STM32F767-ATK-Apllo")
 CPPFLAGS += -DSTM32F7xx -DSTM32F767xx -D__FPU_USED=1U -DUNALIGNED_SUPPORT_DISABLE
 CPPFLAGS += -DARM_MATH_CM7 -DARM_MATH_MATRIX_CHECK -DARM_MATH_ROUNDING -DARM_MATH_LOOPUNROLL
 CPPFLAGS += -DUSE_HAL_DRIVER
+#CPPFLAGS += -DGYRO_CALIBRATION
 endif
 
 
@@ -109,7 +110,7 @@ endif
 
 .PHONY: flash
 flash: $(output_bin)
-	st-flash write $< 0x08000000
+	st-flash --reset write $< 0x08000000
 
 .PHONY: debug
 debug: $(output_bin)
